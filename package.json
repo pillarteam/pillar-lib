@@ -1,0 +1,24 @@
+{
+  "name": "pillar-lib",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pillarteam/pillar-lib.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pillarteam/pillar-lib/issues"
+  },
+  "homepage": "https://github.com/pillarteam/pillar-lib#readme",
+  "dependencies": {
+    "coins": "^3.1.2",
+    "lotion": "^0.1.12",
+    "underscore": "^1.9.1"
+  }
+}
