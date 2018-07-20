@@ -1,12 +1,19 @@
 let lotion = require('lotion')
 
 async function client() {
-  let client = await lotion.connect('06837993228012085ac45daefd31eddde4764144bf1b520856c0032e9e8ed8ac')
+  let client = await lotion.connect('dbe97c6e04740d002068678f78e484577c0908acfe1e1a393e887df48703c7ac')
 
+  // Transaction example
   let result = await
-    client.send({ type: 'transaction'})
+    client.send({ type: 'transaction', from: 'wai', to: 'ting', amount: 4})
 
   console.log('\nRESULT:\n', result)
+
+  let result = await
+    client.send({ type: 'bonds', from: 'wai', amount: 4})
+
+  console.log('\nRESULT:\n', result)
+
 
   /*result = await
     client.send({
@@ -19,7 +26,6 @@ async function client() {
         {amount: 4, type: 'coin', receiverAddress: 'wai'}
         ]
     })*/
-  console.log('\nRESULT:\n', result)
 }
 
 client()
