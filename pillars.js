@@ -1,5 +1,6 @@
 const coins = require('coins')
 const debug = require('debug')('pillars')
+const _ = require('underscore')
 
 function verifyAmountField (amount) {
   if (!amount) {
@@ -24,11 +25,11 @@ function verifyAmountField (amount) {
 }
 
 function verifyFrom (from) {
-  if (!tx.from) {
+  if (!from) {
     throw new Error('`from` is required.')
   }
 
-  if (typeof tx.from !== 'string') {
+  if (typeof from !== 'string') {
     throw new Error('`from` is required.')
   }
 }
@@ -108,6 +109,33 @@ function pillars (opts = {}) {
 
     // AirDrop function doesn't seem right because it is going to sell bonds for everyone...
     // Need to verify how it actually works.
+    const initialSupply = state.supply
+
+    _.mapObject(state.wallets, (wallet, address) => {
+        wallet.share = wallet.balance/initialSupply
+    })
+
+    const targetCap = state.supply * state.airdropFactor
+
+    while(state.bondQueue.length){
+        const bondtoRedeem = state.bondQueue.splice(0,1)
+        for(let i = 0; i < bondtoRedeem[0].amount; i++){
+            if(state.supply < targetCap){
+                state.wallets[bondtoRedeem[0].bondowner].balance += 1
+                state.supply += 1
+            }
+        }
+    }
+
+    if(state.supply < targetCap){
+        let margin = (targetCap - state.supply)
+        _.mapObject(state.wallets, (wallet, address) => {
+                console.log(wallet.share)
+                wallet.balance += margin*(wallet.share)
+                state.supply += margin*(wallet.share)
+        })
+
+    }
 
     return state
   }
@@ -131,9 +159,6 @@ function pillars (opts = {}) {
   }
 
   function txHandler (state, tx, chain) {
-    console.log(state)
-    console.log(tx.type)
-
     if (!tx.type) throw Error('Need to give a type of tx')
     if (typeof tx.type !== 'string') throw Error('`tx` need to be a string')
 
@@ -154,6 +179,43 @@ function pillars (opts = {}) {
         throw Error('Unknown type !')
     }
 
+    function blockHandler (state, chain) {
+      if ((chain.height - state.lastVoteWindow) > 20) {
+          state.lastVoteWindow = chain.height
+      } else {
+          return
+      }
+
+      //state.wallets[input.senderAddress].balance -= input.amount
+
+      var totalPrices = 0;
+      var totalWeight = 0;
+
+
+      for (var address in state.votePrices) {
+          totalPrices += state.votePrices[address] * state.stakedAmount[address]
+          totalWeight += state.stakedAmount[address]
+      }
+
+      if (totalWeight > 0) {
+        state.finalPrice = totalPrices / totalWeight
+      }
+      for (var address in state.votePrices) {
+          if (state.votePrices[address] < state.finalPrice * 0.95) {
+              continue
+          }
+          else if (state.votePrices[address] > state.finalPrice * 1.05) {
+              continue
+          }
+          else {
+              continue
+              // state.wallets[address].balance += state.stakedAmount[address] * 1.01
+          }
+      }
+      state.votePrices = {}
+      state.stakedAmount = {}
+    }
+
   }
 
   return [
@@ -164,6 +226,9 @@ function pillars (opts = {}) {
     {
       type: 'tx',
       middleware: txHandler
+    }, {
+      type: 'block',
+      middleware: blockHandler
     }
   ]
 }
