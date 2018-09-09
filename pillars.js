@@ -178,44 +178,43 @@ function pillars (opts = {}) {
       default:
         throw Error('Unknown type !')
     }
+  }
 
-    function blockHandler (state, chain) {
-      if ((chain.height - state.lastVoteWindow) > 20) {
-          state.lastVoteWindow = chain.height
-      } else {
-          return
-      }
-
-      //state.wallets[input.senderAddress].balance -= input.amount
-
-      var totalPrices = 0;
-      var totalWeight = 0;
-
-
-      for (var address in state.votePrices) {
-          totalPrices += state.votePrices[address] * state.stakedAmount[address]
-          totalWeight += state.stakedAmount[address]
-      }
-
-      if (totalWeight > 0) {
-        state.finalPrice = totalPrices / totalWeight
-      }
-      for (var address in state.votePrices) {
-          if (state.votePrices[address] < state.finalPrice * 0.95) {
-              continue
-          }
-          else if (state.votePrices[address] > state.finalPrice * 1.05) {
-              continue
-          }
-          else {
-              continue
-              // state.wallets[address].balance += state.stakedAmount[address] * 1.01
-          }
-      }
-      state.votePrices = {}
-      state.stakedAmount = {}
+  function blockHandler (state, chain) {
+    if ((chain.height - state.lastVoteWindow) > 20) {
+      state.lastVoteWindow = chain.height
+    } else {
+      return
     }
 
+    //state.wallets[input.senderAddress].balance -= input.amount
+
+    var totalPrices = 0;
+    var totalWeight = 0;
+
+
+    for (var address in state.votePrices) {
+      totalPrices += state.votePrices[address] * state.stakedAmount[address]
+      totalWeight += state.stakedAmount[address]
+    }
+
+    if (totalWeight > 0) {
+      state.finalPrice = totalPrices / totalWeight
+    }
+    for (var address in state.votePrices) {
+      if (state.votePrices[address] < state.finalPrice * 0.95) {
+        continue
+      }
+      else if (state.votePrices[address] > state.finalPrice * 1.05) {
+        continue
+      }
+      else {
+        continue
+        // state.wallets[address].balance += state.stakedAmount[address] * 1.01
+      }
+    }
+    state.votePrices = {}
+    state.stakedAmount = {}
   }
 
   return [
