@@ -60,7 +60,7 @@ function pillars (opts = {}) {
     debug('Here we vote !')
     // {amount: Number(stake), type: 'vote', price: Number(price), from: 'ting'}
 
-    if (tx.senderAddress in tx.votePrices) {
+    if (tx.senderAddress in state.votePrices) {
         return
     }
 
@@ -96,7 +96,7 @@ function pillars (opts = {}) {
     if (state.wallets[tx.to]) {
       state.wallets[tx.to].balance += tx.amount
     } else {
-      state.wallets[tx.to] = { balance: amount, bonds: 0}
+      state.wallets[tx.to] = { balance: tx.amount, bonds: 0}
     }
 
     state.wallets[tx.from].balance -= tx.amount
@@ -181,8 +181,8 @@ function pillars (opts = {}) {
   }
 
   function blockHandler (state, chain) {
-    if ((chain.height - state.lastVoteWindow) > 20) {
-      state.lastVoteWindow = chain.height
+    if ((chain.time - state.lastVoteWindow) > 20) {
+      state.lastVoteWindow = chain.time
     } else {
       return
     }
