@@ -1,52 +1,7 @@
-const coins = require('coins')
 const debug = require('debug')('pillars')
 const _ = require('underscore')
-
-function verifyAmountField (amount) {
-  if (!amount) {
-    throw new Error('`amount` is required.')
-  }
-
-  if (typeof amount !== 'number') {
-    throw new Error('`amount` has to be an number.')
-  }
-
-  if (amount < 0) {
-    throw new Error('`amount` has to be positive or 0.')
-  }
-
-  if (!Number.isInteger(amount)) {
-    throw new Error('`amount` has to be an integer.')
-  }
-
-  if (amount > Number.MAX_SAFE_INTEGER) {
-    throw Error('`amount` must be < 2^53')
-  }
-}
-
-function verifyFrom (from) {
-  if (!from) {
-    throw new Error('`from` is required.')
-  }
-
-  if (typeof from !== 'string') {
-    throw new Error('`from` is required.')
-  }
-}
-
-function verifyBalanceFrom (from, amount, wallets) {
-  if (!wallets.hasOwnProperty(from)) {
-    throw new Error(`${from} doesn't exist.`)
-  }
-}
-
-function verifyMinimumBalance (from, amount, wallets) {
-  verifyBalanceFrom(from, amount, wallets)
-
-  if (wallets[from].balance < amount) {
-    throw new Error('Not enough funds.')
-  }
-}
+const secp256k1 = require('secp256k1')
+const {verifyAmountField, verifyFrom, verifyBalanceFrom, verifyMinimumBalance} = require('./utility')
 
 function pillars (opts = {}) {
   let { handlers } = opts
@@ -56,9 +11,9 @@ function pillars (opts = {}) {
     console.log(chainInfo)
   }
 
+  // {amount: Number(stake), type: 'vote', price: Number(price), from: 'ting'}
   function voteHandler (state, tx, chain) {
     debug('Here we vote !')
-    // {amount: Number(stake), type: 'vote', price: Number(price), from: 'ting'}
 
     if (tx.senderAddress in state.votePrices) {
         return
@@ -74,6 +29,15 @@ function pillars (opts = {}) {
     return state
   }
 
+  /* {
+    amount: Number(amount),
+    type: 'transaction',
+    from: '022b790d661536c5afdfcca06e069098a6b5fbc4bffe8042c36cc7348acfd5ca9b',
+    to: '022b790d661536c5afdfcca06e069098a6b5fbc4bffe8042c36cc7348acfd5ca9b',
+    nonce: 1,
+    signature: 'blah blah'
+  }
+    */
   function transactionHandler (state, tx, chain) {
     debug('Here we handle transaction !')
 
@@ -92,11 +56,27 @@ function pillars (opts = {}) {
       throw new Error('`to` has to be a string.')
     }
 
+    // Maybe dont do the Number(tx.amount).toString() !!!
+    let amountBuffer = Buffer.from(Number(tx.amount).toString())
+    let typeBuffer = Buffer.from(tx.type)
+    let fromBuffer = Buffer.from(tx.from, 'hex')
+    let toBuffer = Buffer.from(tx.to, 'hex')
+    let nonceBuffer = Buffer.from(Number(tx.nonce).toString())
+
+    let totalLenght =  amountBuffer.length + typeBuffer.length + fromBuffer.length + toBuffer.length + nonceBuffer.length
+
+    let msg = Buffer.concat([amountBuffer, typeBuffer, fromBuffer, toBuffer, nonceBuffer], totalLength)
+
+    if (!secp256k1.verify(msg, tx.signature, tx.from)) {
+      throw new Error('`signature` doesnt match.')
+    }
+
     // If we are here everything is fine, we can mutate state
     if (state.wallets[tx.to]) {
+      // TODO: Rename wallets in accounts
       state.wallets[tx.to].balance += tx.amount
     } else {
-      state.wallets[tx.to] = { balance: tx.amount, bonds: 0}
+      state.wallets[tx.to] = { balance: tx.amount, bonds: 0, nonce: 0}
     }
 
     state.wallets[tx.from].balance -= tx.amount
