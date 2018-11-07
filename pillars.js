@@ -67,6 +67,10 @@ function pillars (opts = {}) {
 
     let msg = Buffer.concat([amountBuffer, typeBuffer, fromBuffer, toBuffer, nonceBuffer], totalLength)
 
+    if (state.wallets[tx.from].nonce + 1 != tx.nonce) {
+      throw new Error('Wrong `nonce`.')
+    }
+
     if (!secp256k1.verify(msg, tx.signature, tx.from)) {
       throw new Error('`signature` doesnt match.')
     }
